@@ -118,11 +118,6 @@ public class AndroidSClockController implements ClockPlugin {
     private final ViewPreviewer mRenderer = new ViewPreviewer();
 
     /**
-     * Helper to extract colors from wallpaper palette for clock face.
-     */
-    private final ClockPalette mPalette = new ClockPalette();
-
-    /**
      * Root view of clock.
      */
     private ClockLayout mView;
@@ -151,6 +146,7 @@ public class AndroidSClockController implements ClockPlugin {
     private final HashMap<View, PendingIntent> mClickActions;
     private Uri mKeyguardSliceUri;
 
+    private final ClockPalette mPalette = new ClockPalette();
     private int mTextColor;
     private float mDarkAmount = 0;
     private int mRowHeight = 0;
@@ -232,15 +228,8 @@ public class AndroidSClockController implements ClockPlugin {
 
         View previewView = mLayoutInflater.inflate(R.layout.android_s_clock, null);
         TextClock previewClock = mView.findViewById(R.id.clock);
-        TextView previewTitle = mView.findViewById(R.id.title);
         previewClock.setFormat12Hour("hh\nmm");
         previewClock.setFormat24Hour("kk\nmm");
-        onTimeTick();
-        previewClock.setTextColor(Color.WHITE);
-        previewTitle.setTextColor(Color.WHITE);
-        ColorExtractor.GradientColors colors = mColorExtractor.getColors(
-                WallpaperManager.FLAG_LOCK);
-        setColorPalette(colors.supportsDarkText(), colors.getColorPalette());
 
         return mRenderer.createPreview(previewView, width, height);
     }
@@ -272,10 +261,7 @@ public class AndroidSClockController implements ClockPlugin {
     }
 
     @Override
-    public void setColorPalette(boolean supportsDarkText, int[] colorPalette) {
-        mPalette.setColorPalette(supportsDarkText, colorPalette);
-        updateTextColors();
-    }
+    public void setColorPalette(boolean supportsDarkText, int[] colorPalette) {}
 
     @Override
     public void setSlice(Slice slice) {
@@ -496,16 +482,20 @@ public class AndroidSClockController implements ClockPlugin {
     }
 
     private void updateTextColors() {
-        final int secondary = mPalette.getSecondaryColor();
-        mTitle.setTextColor(secondary);
+        final int blendedColor = getTextColor();
+        mTitle.setTextColor(blendedColor);
         int childCount = mRow.getChildCount();
         for (int i = 0; i < childCount; i++) {
             View v = mRow.getChildAt(i);
             if (v instanceof TextView) {
-                ((TextView) v).setTextColor(secondary);
+                ((TextView) v).setTextColor(blendedColor);
             }
         }
-        mClock.setTextColor(secondary);
+
+        ColorExtractor.GradientColors colors = mColorExtractor.getColors(
+                WallpaperManager.FLAG_LOCK);
+        mPalette.setColorPalette(colors.supportsDarkText(), colors.getColorPalette());
+        mClock.setTextColor(ColorUtils.blendARGB(mPalette.getPrimaryColor(), Color.WHITE, 0.3f));
     }
 
     int getTextColor() {
